@@ -1,0 +1,39 @@
+# 1. Use the official Node.js 16 image
+FROM node:16-alpine AS builder
+
+# 2. Set the working directory
+WORKDIR /app
+
+# 3. Copy both package.json and package-lock.json
+COPY package*.json ./
+
+# 4. Install dependencies
+RUN npm install
+
+# 5. Copy the rest of the application code
+COPY . .
+
+# 6. Build the Next.js project
+RUN npm run build
+
+# 7. Use a lightweight Node.js image for production
+FROM node:16-alpine AS runner
+
+# 8. Set the working directory
+WORKDIR /app
+
+# 9. Copy the build output and dependencies from the builder
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+
+# 10. Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# 11. Expose the port for Docker
+EXPOSE 3000
+
+# 12. Start the application
+CMD ["npm", "start"]
